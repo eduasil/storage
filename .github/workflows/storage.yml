@@ -54,24 +54,34 @@ jobs:
             -d '{
               "data": {
                 "attributes": { "is-destroy": false, "message": "Plan via GitHub Actions" },
-                "type": "runs",
-                "relationships": { 
-                  "workspace": { "data": { "type": "workspaces", "id": "'"$TFC_WORKSPACE_NAME"'" } } 
-                }
+                "type": "runs"
               }
             }' \
-            https://app.terraform.io/api/v2/organizations/$TFC_ORG_NAME/runs)
+            https://app.terraform.io/api/v2/organizations/$TFC_ORG_NAME/workspaces/$TFC_WORKSPACE_NAME/runs)
 
           run_id=$(echo "$response" | jq -r '.data.id')
+
+          if [[ -z "$run_id" || "$run_id" == "null" ]]; then
+            echo "❌ Não foi possível criar o run. Verifique TF_TOKEN, org e workspace"
+            echo "Resposta da API: $response"
+            exit 1
+          fi
+
           echo "🆔 Run ID: $run_id"
 
-          echo "⏳ Aguardando resultado do Sentinel..."
-          while true; do
+          echo "⏳ Aguardando resultado do Sentinel (máx 5 minutos)..."
+          timeout=300  # 5 minutos
+          elapsed=0
+          interval=10
+
+          while [ $elapsed -lt $timeout ]; do
             status=$(curl -s \
               -H "Authorization: Bearer $TFC_TOKEN" \
               https://app.terraform.io/api/v2/runs/$run_id \
               | jq -r '.data.attributes.status')
+
             echo "Status atual: $status"
+
             if [[ "$status" == "policy_hard_failed" ]]; then
               echo "❌ Policy Check falhou! Run bloqueado pelo Sentinel."
               exit 1
@@ -79,8 +89,15 @@ jobs:
               echo "✅ Policy Check aprovado!"
               break
             fi
-            sleep 10
+
+            sleep $interval
+            elapsed=$((elapsed + interval))
           done
+
+          if [ $elapsed -ge $timeout ]; then
+            echo "❌ Timeout aguardando resultado do Sentinel"
+            exit 1
+          fi
 
   deploy:
     if: ${{ github.event.inputs.destroy == 'false' }}
