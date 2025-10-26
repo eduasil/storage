@@ -1,6 +1,9 @@
 name: 🚀 Deploy Storage Account
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       destroy:
@@ -13,10 +16,10 @@ permissions:
   contents: read
 
 jobs:
-  sentinel-check:
-    if: ${{ github.event.inputs.destroy == 'false' }}
-    name: 🧠 Validar Storage com Sentinel
+  validate:
+    name: 🔎 Validar Acessos e Terraform - Workers
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.destroy != 'true' }}
 
     steps:
       - name: 📥 Checkout do código
@@ -32,77 +35,20 @@ jobs:
         with:
           terraform_version: 1.13.4
 
-      - name: 🔍 Verificar Token do Terraform Cloud
-        run: |
-          if [ -z "${{ secrets.TF_TOKEN_app_terraform_io }}" ]; then
-            echo "❌ Token do Terraform Cloud não encontrado!"
-            exit 1
-          fi
-          echo "✅ Token encontrado"
-
-      - name: ▶️ Criar Run no Terraform Cloud (Sentinel Check)
+      - name: ✅ Validar Sintaxe e Plano
         env:
-          TFC_TOKEN: ${{ secrets.TF_TOKEN_app_terraform_io }}
-          TFC_WORKSPACE_NAME: "storage"
-          TFC_ORG_NAME: "almeidacorp"
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         run: |
-          echo "🔄 Criando run remoto no Terraform Cloud..."
-          response=$(curl -s \
-            -H "Authorization: Bearer $TFC_TOKEN" \
-            -H "Content-Type: application/vnd.api+json" \
-            -X POST \
-            -d '{
-              "data": {
-                "attributes": { "is-destroy": false, "message": "Plan via GitHub Actions" },
-                "type": "runs"
-              }
-            }' \
-            https://app.terraform.io/api/v2/organizations/$TFC_ORG_NAME/workspaces/$TFC_WORKSPACE_NAME/runs)
-
-          run_id=$(echo "$response" | jq -r '.data.id')
-
-          if [[ -z "$run_id" || "$run_id" == "null" ]]; then
-            echo "❌ Não foi possível criar o run. Verifique TF_TOKEN, org e workspace"
-            echo "Resposta da API: $response"
-            exit 1
-          fi
-
-          echo "🆔 Run ID: $run_id"
-
-          echo "⏳ Aguardando resultado do Sentinel1 (máx 5 minutos)..."
-          timeout=300  # 5 minutos
-          elapsed=0
-          interval=10
-
-          while [ $elapsed -lt $timeout ]; do
-            status=$(curl -s \
-              -H "Authorization: Bearer $TFC_TOKEN" \
-              https://app.terraform.io/api/v2/runs/$run_id \
-              | jq -r '.data.attributes.status')
-
-            echo "Status atual: $status"
-
-            if [[ "$status" == "policy_hard_failed" ]]; then
-              echo "❌ Policy Check falhou! Run bloqueado pelo Sentinel."
-              exit 1
-            elif [[ "$status" == "planned" || "$status" == "policy_checked" ]]; then
-              echo "✅ Policy Check aprovado!"
-              break
-            fi
-
-            sleep $interval
-            elapsed=$((elapsed + interval))
-          done
-
-          if [ $elapsed -ge $timeout ]; then
-            echo "❌ Timeout aguardando resultado do Sentinel"
-            exit 1
-          fi
+          terraform init -input=false
+          terraform fmt -check
+          terraform validate
+          terraform plan -input=false
 
   deploy:
     if: ${{ github.event.inputs.destroy == 'false' }}
     name: 🚀 Aplicar Storage Account Azure
-    needs: sentinel-check
+    needs: validate
     runs-on: ubuntu-latest
 
     steps:
