@@ -1,0 +1,102 @@
+name: 🚀 Deploy Storage Account
+
+on:
+  workflow_dispatch:
+    inputs:
+      destroy:
+        description: 'Destruir infraestrutura?'
+        required: true
+        default: 'false'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  validate:
+    if: ${{ github.event.inputs.destroy == 'false' }}
+    name: 🔎 Validar Acessos e Terraform
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🔐 Login no Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZ_GITHUB_ACTION_SP }}
+
+      - name: 🛠️ Instalar Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: 🔍 Verificar se o token do Terraform Cloud está presente
+        run: |
+          if [ -z "${{ secrets.TF_TOKEN_app_terraform_io }}" ]; then
+            echo "❌ Token do Terraform Cloud não encontrado!"
+            exit 1
+          else
+            echo "✅ Token encontrado, seguindo..."
+          fi
+
+      - name: ✅ Validar Sintaxe e Plano
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        run: |
+          terraform init
+          terraform fmt -check
+          terraform validate
+          terraform plan
+
+  deploy:
+    if: ${{ github.event.inputs.destroy == 'false' }}
+    name: 🚀 Deploy Storage Account Azure
+    needs: validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🔐 Login no Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZ_GITHUB_ACTION_SP }}
+
+      - name: 🛠️ Instalar Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: 🚀 Aplicar Infraestrutura Storage
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        run: |
+          terraform init
+          terraform apply -auto-approve
+
+  destroy:
+    if: ${{ github.event.inputs.destroy == 'true' }}
+    name: 🧨 Destruir Infraestrutura
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🔐 Login no Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZ_GITHUB_ACTION_SP }}
+
+      - name: 🛠️ Instalar Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: 🧨 Executar Terraform Destroy
+        working-directory: storage
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        run: |
+          terraform init
+          terraform destroy -auto-approve
