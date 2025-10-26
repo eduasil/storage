@@ -23,3 +23,9 @@ resource "azurerm_storage_container" "private_blob" {
   storage_account_name  = azurerm_storage_account.storage.name
   container_access_type = "private"
 }
+
+resource "azurerm_storage_container" "public_container" {
+  name                  = "publiccontainer"
+  storage_account_name  = azurerm_storage_account.storage.name
+  container_access_type = "blob"
+}

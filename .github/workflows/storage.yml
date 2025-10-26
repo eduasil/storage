@@ -93,7 +93,6 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: 🧨 Executar Terraform Destroy
-        working-directory: storage
         env:
           TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
