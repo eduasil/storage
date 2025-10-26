@@ -50,16 +50,9 @@ jobs:
           terraform fmt -check
           terraform validate
 
-          echo "🚀 Executando Terraform Plan com verificação Sentinel..."
-          terraform plan -input=false -out=tfplan.binary
+          echo "🚀 Executando Terraform Plan remoto (Sentinel ativo no TFC)..."
+          terraform plan -input=false -no-color
 
-          echo "🔒 Enviando plano para o Terraform Cloud (Policy Check via Sentinel)"
-          terraform login || true
-          terraform show -json tfplan.binary > tfplan.json
-
-          # Envia o plano para o Terraform Cloud para validação Sentinel
-          terraform plan -input=false -lock=false \
-            -var="policy_check=true" || echo "⚠️ Policy check falhou conforme Sentinel"
 
   destroy:
     if: ${{ github.event.inputs.destroy == 'true' }}
