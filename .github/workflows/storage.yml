@@ -18,7 +18,7 @@ permissions:
 jobs:
   validate:
     name: 🔎 Validar Acessos e Terraform 
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.destroy != 'true' }}
 
     steps:
@@ -49,7 +49,7 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.destroy != 'true' }}
     name: 🚀 Aplicar Storage Account Azure
     needs: validate
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: 📥 Checkout do código
