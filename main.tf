@@ -12,16 +12,6 @@ resource "azurerm_storage_account" "storage" {
   account_tier             = var.account_tier
   account_replication_type = var.account_replication_type
 
-  tags = {
-    environment = "Terraform Demo"
-  }
-}
-
-# Storage Container privado
-resource "azurerm_storage_container" "private_blob" {
-  name                  = "listasalarios"
-  storage_account_name  = azurerm_storage_account.storage.name
-  container_access_type = "private"
 }
 
 resource "azurerm_storage_container" "public_container" {

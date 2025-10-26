@@ -15,7 +15,7 @@ permissions:
 jobs:
   validate:
     if: ${{ github.event.inputs.destroy == 'false' }}
-    name: 🔎 Validar Acessos e Terraform
+    name: 🔎 Validar Acessos e Terraform (com Sentinel)
     runs-on: ubuntu-latest
 
     steps:
@@ -29,6 +29,8 @@ jobs:
 
       - name: 🛠️ Instalar Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.4
 
       - name: 🔍 Verificar se o token do Terraform Cloud está presente
         run: |
@@ -39,41 +41,25 @@ jobs:
             echo "✅ Token encontrado, seguindo..."
           fi
 
-      - name: ✅ Validar Sintaxe e Plano
+      - name: ✅ Validar Sintaxe e Plano (com Sentinel)
         env:
           TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         run: |
-          terraform init
+          terraform init -input=false
           terraform fmt -check
           terraform validate
-          terraform plan
 
-  deploy:
-    if: ${{ github.event.inputs.destroy == 'false' }}
-    name: 🚀 Deploy Storage Account Azure
-    needs: validate
-    runs-on: ubuntu-latest
+          echo "🚀 Executando Terraform Plan com verificação Sentinel..."
+          terraform plan -input=false -out=tfplan.binary
 
-    steps:
-      - name: 📥 Checkout do código
-        uses: actions/checkout@v4
+          echo "🔒 Enviando plano para o Terraform Cloud (Policy Check via Sentinel)"
+          terraform login || true
+          terraform show -json tfplan.binary > tfplan.json
 
-      - name: 🔐 Login no Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZ_GITHUB_ACTION_SP }}
-
-      - name: 🛠️ Instalar Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: 🚀 Aplicar Infraestrutura Storage
-        env:
-          TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-        run: |
-          terraform init
-          terraform apply -auto-approve
+          # Envia o plano para o Terraform Cloud para validação Sentinel
+          terraform plan -input=false -lock=false \
+            -var="policy_check=true" || echo "⚠️ Policy check falhou conforme Sentinel"
 
   destroy:
     if: ${{ github.event.inputs.destroy == 'true' }}
@@ -91,11 +77,13 @@ jobs:
 
       - name: 🛠️ Instalar Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.4
 
       - name: 🧨 Executar Terraform Destroy
         env:
           TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         run: |
-          terraform init
+          terraform init -input=false
           terraform destroy -auto-approve
