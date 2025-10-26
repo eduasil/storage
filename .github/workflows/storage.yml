@@ -13,9 +13,9 @@ permissions:
   contents: read
 
 jobs:
-  validate:
+  sentinel-check:
     if: ${{ github.event.inputs.destroy == 'false' }}
-    name: 🔎 Validar Acessos e Terraform (com Sentinel)
+    name: 🧠 Validar Acessos e Terraform com Sentinel
     runs-on: ubuntu-latest
 
     steps:
@@ -32,51 +32,49 @@ jobs:
         with:
           terraform_version: 1.13.4
 
-      - name: 🔍 Verificar se o token do Terraform Cloud está presente
+      - name: 🔍 Verificar Token do Terraform Cloud
         run: |
           if [ -z "${{ secrets.TF_TOKEN_app_terraform_io }}" ]; then
             echo "❌ Token do Terraform Cloud não encontrado!"
             exit 1
-          else
-            echo "✅ Token encontrado, seguindo..."
           fi
+          echo "✅ Token encontrado"
 
-      - name: ✅ Validar Sintaxe e Plano (com Sentinel)
+      - name: ▶️ Criar Run no Terraform Cloud (Sentinel Check)
         env:
-          TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          TFC_TOKEN: ${{ secrets.TF_TOKEN_app_terraform_io }}
+          TFC_WORKSPACE_ID: ${{ secrets.TFC_WORKSPACE_ID }}
         run: |
-          terraform init -input=false
-          terraform fmt -check
-          terraform validate
+          echo "🔄 Criando run remoto no Terraform Cloud..."
+          response=$(curl -s \
+            -H "Authorization: Bearer $TFC_TOKEN" \
+            -H "Content-Type: application/vnd.api+json" \
+            -X POST \
+            -d '{
+              "data": {
+                "attributes": { "is-destroy": false, "message": "Plan via GitHub Actions" },
+                "type": "runs",
+                "relationships": { "workspace": { "data": { "type": "workspaces", "id": "'"$TFC_WORKSPACE_ID"'" } } }
+              }
+            }' \
+            https://app.terraform.io/api/v2/runs)
+          
+          run_id=$(echo "$response" | jq -r '.data.id')
+          echo "🆔 Run ID: $run_id"
 
-          echo "🚀 Executando Terraform Plan remoto (Sentinel ativo no TFC)..."
-          terraform plan -input=false -no-color
-
-
-  destroy:
-    if: ${{ github.event.inputs.destroy == 'true' }}
-    name: 🧨 Destruir Infraestrutura
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 📥 Checkout do código
-        uses: actions/checkout@v4
-
-      - name: 🔐 Login no Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZ_GITHUB_ACTION_SP }}
-
-      - name: 🛠️ Instalar Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.13.4
-
-      - name: 🧨 Executar Terraform Destroy
-        env:
-          TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-        run: |
-          terraform init -input=false
-          terraform destroy -auto-approve
+          echo "⏳ Aguardando resultado do Sentinel..."
+          while true; do
+            status=$(curl -s \
+              -H "Authorization: Bearer $TFC_TOKEN" \
+              https://app.terraform.io/api/v2/runs/$run_id \
+              | jq -r '.data.attributes.status')
+            echo "Status atual: $status"
+            if [[ "$status" == "policy_hard_failed" ]]; then
+              echo "❌ Policy Check falhou! Run bloqueado pelo Sentinel."
+              exit 1
+            elif [[ "$status" == "planned" || "$status" == "policy_checked" ]]; then
+              echo "✅ Policy Check aprovado!"
+              break
+            fi
+            sleep 10
+          done
