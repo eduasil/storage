@@ -32,7 +32,7 @@ resource "azurerm_virtual_network" "vnet" {
   name                = "vnet-storage"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  address_space       = ["c"]
+  address_space       = ["192.168.3.0/24"]
 }
 
 resource "azurerm_subnet" "private_endpoint_subnet" {
