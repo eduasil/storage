@@ -1,0 +1,47 @@
+# 🌍 Arquivos de estado do Terraform (contêm dados sensíveis)
+*.tfstate
+*.tfstate.*
+
+# 📦 Diretório de cache do Terraform
+.terraform/
+.terraform.lock.hcl
+
+# 🔐 Arquivos de variáveis privadas
+terraform.tfvars
+terraform.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+
+# 🧪 Arquivos de plano e execução
+*.tfplan
+*.log
+*.bak
+
+# 🧩 Overrides locais
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# 🧱 Terragrunt
+.terragrunt-cache/
+**/.terragrunt-cache/
+*.hcl
+
+# 🧠 Arquivos temporários e de sistema
+*.swp
+*.tmp
+*.DS_Store
+
+# 🧰 IDEs e editores
+.vscode/
+.idea/
+*.code-workspace
+
+# 📁 Backups e arquivos gerados
+backup/
+output/
+.env
+.env.*
+
+# 🚫 Evite versionar arquivos sensíveis ou gerados automaticamentee
