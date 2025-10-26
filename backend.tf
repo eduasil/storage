@@ -4,7 +4,7 @@ terraform {
     organization = "almeidacorp"
 
     workspaces {
-      name = "test-defender"
+      name = "storage"
     }
   }
 }
