@@ -15,7 +15,7 @@ permissions:
 jobs:
   sentinel-check:
     if: ${{ github.event.inputs.destroy == 'false' }}
-    name: 🧠 Validar Acessos e Terraform com Sentinel
+    name: 🧠 Validar Storage com Sentinel
     runs-on: ubuntu-latest
 
     steps:
@@ -43,7 +43,8 @@ jobs:
       - name: ▶️ Criar Run no Terraform Cloud (Sentinel Check)
         env:
           TFC_TOKEN: ${{ secrets.TF_TOKEN_app_terraform_io }}
-          TFC_WORKSPACE_ID: ${{ secrets.TFC_WORKSPACE_ID }}
+          TFC_WORKSPACE_NAME: "storage"
+          TFC_ORG_NAME: "almeidacorp"
         run: |
           echo "🔄 Criando run remoto no Terraform Cloud..."
           response=$(curl -s \
@@ -54,11 +55,13 @@ jobs:
               "data": {
                 "attributes": { "is-destroy": false, "message": "Plan via GitHub Actions" },
                 "type": "runs",
-                "relationships": { "workspace": { "data": { "type": "workspaces", "id": "'"$TFC_WORKSPACE_ID"'" } } }
+                "relationships": { 
+                  "workspace": { "data": { "type": "workspaces", "id": "'"$TFC_WORKSPACE_NAME"'" } } 
+                }
               }
             }' \
-            https://app.terraform.io/api/v2/runs)
-          
+            https://app.terraform.io/api/v2/organizations/$TFC_ORG_NAME/runs)
+
           run_id=$(echo "$response" | jq -r '.data.id')
           echo "🆔 Run ID: $run_id"
 
@@ -78,3 +81,58 @@ jobs:
             fi
             sleep 10
           done
+
+  deploy:
+    if: ${{ github.event.inputs.destroy == 'false' }}
+    name: 🚀 Aplicar Storage Account Azure
+    needs: sentinel-check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🔐 Login no Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZ_GITHUB_ACTION_SP }}
+
+      - name: 🛠️ Instalar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.4
+
+      - name: 🚀 Executar Apply
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        run: |
+          terraform init -input=false
+          terraform apply -auto-approve
+
+  destroy:
+    if: ${{ github.event.inputs.destroy == 'true' }}
+    name: 🧨 Destruir Infraestrutura
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🔐 Login no Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZ_GITHUB_ACTION_SP }}
+
+      - name: 🛠️ Instalar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.4
+
+      - name: 🧨 Executar Destroy
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        run: |
+          terraform init -input=false
+          terraform destroy -auto-approve
