@@ -12,8 +12,7 @@ resource "azurerm_subnet" "private_endpoint_subnet" {
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["192.168.3.0/24"]
 
-  # Necessário para Private Endpoints
-  enforce_private_link_endpoint_network_policies = false
+  service_endpoints = ["Microsoft.Storage"]
 }
 
 # 🔹 Private DNS Zone
