@@ -21,6 +21,13 @@ jobs:
     runs-on: self-hosted
     if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.destroy != 'true' }}
 
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      ARM_CLIENT_ID: ${{ fromJson(secrets.AZ_GITHUB_ACTION_SP).clientId }}
+      ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZ_GITHUB_ACTION_SP).clientSecret }}
+      ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZ_GITHUB_ACTION_SP).subscriptionId }}
+      ARM_TENANT_ID: ${{ fromJson(secrets.AZ_GITHUB_ACTION_SP).tenantId }}
+
     steps:
       - name: 📥 Checkout do código
         uses: actions/checkout@v4
@@ -36,9 +43,6 @@ jobs:
           terraform_version: 1.13.4
 
       - name: ✅ Validar Sintaxe e Plano
-        env:
-          TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         run: |
           terraform init -input=false
           terraform fmt -check
@@ -46,10 +50,17 @@ jobs:
           terraform plan -input=false
 
   deploy:
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.destroy != 'true' }}
     name: 🚀 Aplicar Storage Account Azure
     needs: validate
     runs-on: self-hosted
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.destroy != 'true' }}
+
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      ARM_CLIENT_ID: ${{ fromJson(secrets.AZ_GITHUB_ACTION_SP).clientId }}
+      ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZ_GITHUB_ACTION_SP).clientSecret }}
+      ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZ_GITHUB_ACTION_SP).subscriptionId }}
+      ARM_TENANT_ID: ${{ fromJson(secrets.AZ_GITHUB_ACTION_SP).tenantId }}
 
     steps:
       - name: 📥 Checkout do código
@@ -66,17 +77,21 @@ jobs:
           terraform_version: 1.13.4
 
       - name: 🚀 Executar Apply
-        env:
-          TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         run: |
           terraform init -input=false
           terraform apply -auto-approve
 
   destroy:
-    if: ${{ github.event.inputs.destroy == 'true' }}
     name: 🧨 Destruir Infraestrutura
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.destroy == 'true' }}
+
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      ARM_CLIENT_ID: ${{ fromJson(secrets.AZ_GITHUB_ACTION_SP).clientId }}
+      ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZ_GITHUB_ACTION_SP).clientSecret }}
+      ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZ_GITHUB_ACTION_SP).subscriptionId }}
+      ARM_TENANT_ID: ${{ fromJson(secrets.AZ_GITHUB_ACTION_SP).tenantId }}
 
     steps:
       - name: 📥 Checkout do código
@@ -93,9 +108,6 @@ jobs:
           terraform_version: 1.13.4
 
       - name: 🧨 Executar Destroy
-        env:
-          TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         run: |
           terraform init -input=false
           terraform destroy -auto-approve
