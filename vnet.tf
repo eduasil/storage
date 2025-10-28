@@ -13,6 +13,9 @@ resource "azurerm_subnet" "private_endpoint_subnet" {
   address_prefixes     = ["192.168.3.0/24"]
 
   service_endpoints = ["Microsoft.Storage"]
+    depends_on = [
+    azurerm_private_endpoint.storage_pe
+  ]
 }
 
 # 🔹 Private DNS Zone
@@ -20,8 +23,7 @@ resource "azurerm_private_dns_zone" "storage_dns" {
   name                = "privatelink.blob.core.windows.net"
   resource_group_name = azurerm_resource_group.rg.name
   depends_on = [
-    azurerm_virtual_network.vnet,
-    azurerm_subnet.private_endpoint_subnet
+    azurerm_private_endpoint.storage_pe
   ]
 
 }
@@ -35,8 +37,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "dns_link" {
   registration_enabled  = false
 
   depends_on = [
-    azurerm_virtual_network.vnet,
-    azurerm_subnet.private_endpoint_subnet
+    azurerm_private_endpoint.storage_pe
   ]
 }
 
@@ -59,9 +60,9 @@ resource "azurerm_private_endpoint" "storage_pe" {
     private_dns_zone_ids = [azurerm_private_dns_zone.storage_dns.id]
   }
   depends_on = [
-    azurerm_virtual_network.vnet,
-    azurerm_subnet.private_endpoint_subnet,
-    azurerm_private_endpoint.storage_pe
+    azurerm_storage_account.storage,
+    azurerm_private_dns_zone.storage_dns,
+    azurerm_private_dns_zone_virtual_network_link.dns_link
   ]
 }
 
@@ -76,8 +77,7 @@ resource "azurerm_virtual_network_peering" "storage_to_servidores" {
   allow_virtual_network_access = true
 
   depends_on = [
-    azurerm_virtual_network.vnet,
-    azurerm_subnet.private_endpoint_subnet
+    azurerm_private_endpoint.storage_pe
   ]
 }
 
