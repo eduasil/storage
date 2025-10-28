@@ -60,7 +60,8 @@ resource "azurerm_private_endpoint" "storage_pe" {
   }
   depends_on = [
     azurerm_virtual_network.vnet,
-    azurerm_subnet.private_endpoint_subnet
+    azurerm_subnet.private_endpoint_subnet,
+    azurerm_private_endpoint.storage_pe
   ]
 }
 
