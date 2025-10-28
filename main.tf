@@ -12,6 +12,10 @@ resource "azurerm_storage_account" "storage" {
   account_tier             = "Standard"
   account_replication_type = "LRS"
   min_tls_version          = "TLS1_2"
+  
+  depends_on = [
+    azurerm_resource_group.rg
+  ]
 }
 
 # 🔹 Container privado
@@ -19,6 +23,10 @@ resource "azurerm_storage_container" "private_container" {
   name                  = "private-container"
   storage_account_name  = azurerm_storage_account.storage.name
   container_access_type = "private"
+
+  depends_on = [
+    azurerm_storage_account.storage
+  ]
 }
 
 # 🔹 Container privado
@@ -26,6 +34,10 @@ resource "azurerm_storage_container" "container" {
   name                  = "container"
   storage_account_name  = azurerm_storage_account.storage.name
   container_access_type = "private"
+
+  depends_on = [
+    azurerm_storage_account.storage
+  ]
 }
 
 # 🔹 Container privado
@@ -33,4 +45,8 @@ resource "azurerm_storage_container" "container1" {
   name                  = "container1"
   storage_account_name  = azurerm_storage_account.storage.name
   container_access_type = "private"
+
+  depends_on = [
+    azurerm_storage_account.storage
+  ]
 }

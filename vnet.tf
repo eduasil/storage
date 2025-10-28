@@ -4,6 +4,9 @@ resource "azurerm_virtual_network" "vnet" {
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   address_space       = ["192.168.3.0/24"]
+  depends_on = [
+    azurerm_resource_group.rg
+  ]
 }
 
 resource "azurerm_subnet" "private_endpoint_subnet" {
@@ -14,7 +17,7 @@ resource "azurerm_subnet" "private_endpoint_subnet" {
 
   service_endpoints = ["Microsoft.Storage"]
   depends_on = [
-    azurerm_private_endpoint.storage_pe
+    azurerm_virtual_network.vnet
   ]
 }
 
@@ -23,7 +26,7 @@ resource "azurerm_private_dns_zone" "storage_dns" {
   name                = "privatelink.blob.core.windows.net"
   resource_group_name = azurerm_resource_group.rg.name
   depends_on = [
-    azurerm_private_endpoint.storage_pe
+    azurerm_resource_group.rg
   ]
 
 }
@@ -35,10 +38,12 @@ resource "azurerm_private_dns_zone_virtual_network_link" "dns_link" {
   private_dns_zone_name = azurerm_private_dns_zone.storage_dns.name
   virtual_network_id    = azurerm_virtual_network.vnet.id
   registration_enabled  = false
+
   depends_on = [
     azurerm_private_dns_zone.storage_dns,
     azurerm_virtual_network.vnet
   ]
+
 }
 
 # 🔹 Private Endpoint com associação DNS (nova sintaxe)
@@ -61,8 +66,9 @@ resource "azurerm_private_endpoint" "storage_pe" {
   }
   depends_on = [
     azurerm_storage_account.storage,
-    azurerm_subnet.private_endpoint_subnet,
-    azurerm_private_dns_zone_virtual_network_link.dns_link
+    azurerm_private_dns_zone.storage_dns,
+    azurerm_private_dns_zone_virtual_network_link.dns_link,
+    azurerm_subnet.private_endpoint_subnet
   ]
 }
 
@@ -77,7 +83,8 @@ resource "azurerm_virtual_network_peering" "storage_to_servidores" {
   allow_virtual_network_access = true
 
   depends_on = [
-    azurerm_virtual_network.vnet
+    azurerm_virtual_network.vnet,
+    azurerm_subnet.private_endpoint_subnet
   ]
 }
 
@@ -93,6 +100,7 @@ resource "azurerm_virtual_network_peering" "servidores_to_storage" {
   allow_virtual_network_access = true
 
   depends_on = [
-    azurerm_virtual_network.vnet
+    azurerm_virtual_network.vnet,
+    azurerm_subnet.private_endpoint_subnet
   ]
 }
