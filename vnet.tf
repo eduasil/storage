@@ -35,10 +35,6 @@ resource "azurerm_private_dns_zone_virtual_network_link" "dns_link" {
   private_dns_zone_name = azurerm_private_dns_zone.storage_dns.name
   virtual_network_id    = azurerm_virtual_network.vnet.id
   registration_enabled  = false
-
-  depends_on = [
-    azurerm_private_endpoint.storage_pe
-  ]
 }
 
 # 🔹 Private Endpoint com associação DNS (nova sintaxe)
@@ -59,6 +55,7 @@ resource "azurerm_private_endpoint" "storage_pe" {
     name                 = "storage-dns-zone-group"
     private_dns_zone_ids = [azurerm_private_dns_zone.storage_dns.id]
   }
+
   depends_on = [
     azurerm_storage_account.storage,
     azurerm_private_dns_zone.storage_dns,
