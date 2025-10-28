@@ -55,12 +55,6 @@ resource "azurerm_private_endpoint" "storage_pe" {
     name                 = "storage-dns-zone-group"
     private_dns_zone_ids = [azurerm_private_dns_zone.storage_dns.id]
   }
-
-  depends_on = [
-    azurerm_storage_account.storage,
-    azurerm_private_dns_zone.storage_dns,
-    azurerm_private_dns_zone_virtual_network_link.dns_link
-  ]
 }
 
 resource "azurerm_virtual_network_peering" "storage_to_servidores" {
