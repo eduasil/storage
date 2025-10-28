@@ -83,7 +83,7 @@ jobs:
 
   destroy:
     name: 🧨 Destruir Infraestrutura
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: ${{ github.event.inputs.destroy == 'true' }}
 
     env:
