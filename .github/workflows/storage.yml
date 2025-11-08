@@ -18,7 +18,7 @@ permissions:
 jobs:
   validate:
     name: 🔎 Validar Acessos e Terraform 
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.destroy != 'true' }}
 
     env:
@@ -52,7 +52,7 @@ jobs:
   deploy:
     name: 🚀 Aplicar Storage Account Azure
     needs: validate
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.destroy != 'true' }}
 
     env:
@@ -83,7 +83,7 @@ jobs:
 
   destroy:
     name: 🧨 Destruir Infraestrutura
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     if: ${{ github.event.inputs.destroy == 'true' }}
 
     env:

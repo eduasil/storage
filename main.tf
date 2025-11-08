@@ -1,12 +1,12 @@
 # 🔹 Resource Group
 resource "azurerm_resource_group" "rg" {
-  name     = "RG-STORAGE-TEST"
+  name     = "RG-CNAPP"
   location = "eastus"
 }
 
 # 🔹 Storage Account
 resource "azurerm_storage_account" "storage" {
-  name                     = "stalmeidacorpp"
+  name                     = "stalmeidacnapp"
   resource_group_name      = azurerm_resource_group.rg.name
   location                 = azurerm_resource_group.rg.location
   account_tier             = "Standard"
@@ -22,29 +22,7 @@ resource "azurerm_storage_account" "storage" {
 resource "azurerm_storage_container" "private_container" {
   name                  = "private-container"
   storage_account_name  = azurerm_storage_account.storage.name
-  container_access_type = "private"
-
-  depends_on = [
-    azurerm_storage_account.storage
-  ]
-}
-
-# 🔹 Container privado
-resource "azurerm_storage_container" "container" {
-  name                  = "container"
-  storage_account_name  = azurerm_storage_account.storage.name
-  container_access_type = "private"
-
-  depends_on = [
-    azurerm_storage_account.storage
-  ]
-}
-
-# 🔹 Container privado
-resource "azurerm_storage_container" "container1" {
-  name                  = "container1"
-  storage_account_name  = azurerm_storage_account.storage.name
-  container_access_type = "private"
+  container_access_type = "blob"
 
   depends_on = [
     azurerm_storage_account.storage
