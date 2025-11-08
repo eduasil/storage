@@ -1,12 +1,4 @@
 # -------------------------
-# Resource Group
-# -------------------------
-resource "azurerm_resource_group" "rg" {
-  name     = "rg-windows-vm"
-  location = "eastus"
-}
-
-# -------------------------
 # Rede Virtual e Subnet
 # -------------------------
 resource "azurerm_virtual_network" "vnet" {
@@ -77,7 +69,4 @@ resource "azurerm_windows_virtual_machine" "vm" {
     sku       = "2022-datacenter"
     version   = "latest"
   }
-
-  enable_automatic_updates = true
-  patch_mode               = "Automatic"
 }
