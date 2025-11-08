@@ -46,7 +46,7 @@ resource "azurerm_network_interface" "nic" {
 # VM Windows Server 2022
 # -------------------------
 resource "azurerm_windows_virtual_machine" "vm" {
-  name                = "winserver2022-vm"
+  name                = "vmwin2012"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   size                = "Standard_B2ms"
