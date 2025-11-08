@@ -43,6 +43,35 @@ resource "azurerm_network_interface" "nic" {
 }
 
 # -------------------------
+# Network Security Group
+# -------------------------
+resource "azurerm_network_security_group" "nsg" {
+  name                = "nsg-windows-vm"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  security_rule {
+    name                       = "Allow-RDP"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "3389"
+    source_address_prefix      = "*"   # ⚠️ Melhor restringir ao seu IP público
+    destination_address_prefix = "*"
+  }
+}
+
+# -------------------------
+# Associação do NSG ao NIC
+# -------------------------
+resource "azurerm_network_interface_security_group_association" "nic_nsg" {
+  network_interface_id      = azurerm_network_interface.nic.id
+  network_security_group_id = azurerm_network_security_group.nsg.id
+}
+
+# -------------------------
 # VM Windows Server 2022
 # -------------------------
 resource "azurerm_windows_virtual_machine" "vm" {
@@ -70,3 +99,4 @@ resource "azurerm_windows_virtual_machine" "vm" {
     version   = "latest"
   }
 }
+
