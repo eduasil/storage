@@ -58,7 +58,7 @@ resource "azurerm_network_security_group" "nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "3389"
-    source_address_prefix      = "*"   # ⚠️ Melhor restringir ao seu IP público
+    source_address_prefix      = "*" # ⚠️ Melhor restringir ao seu IP público
     destination_address_prefix = "*"
   }
 }
@@ -99,4 +99,3 @@ resource "azurerm_windows_virtual_machine" "vm" {
     version   = "latest"
   }
 }
-
